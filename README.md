@@ -44,3 +44,64 @@ $ adb install example.apk
 
 ![](https://raw.githubusercontent.com/Rajchowdhury420/temp-files-for-writeup/main/settings.png)
 ##### In case you have trouble with app signing, or have an unsigned app, you can use [Uber APK Signer](https://github.com/patrickfav/uber-apk-signer/releases/download/v1.2.1/uber-apk-signer-1.2.1.jar)
+
+## Proxy
+**Anbox operates via a default bridge, which you can check like this
+
+```bash
+$ ifconfig anbox0
+anbox0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.250.1  netmask 255.255.255.0  broadcast 0.0.0.0
+        inet6 fe80::98d8:89ff:fe3f:2e25  prefixlen 64  scopeid 0x20<link>
+        ether fe:9e:c7:5d:19:45  txqueuelen 1000  (Ethernet)
+        RX packets 30  bytes 2376 (2.3 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 33  bytes 7357 (7.1 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+**Set a global proxy via adb with Anbox IP and a port
+
+```bash
+$ adb shell settings put global http_proxy 192.168.250.1:8855
+```
+**Set your proxy, like ZAP or Burp, to listen at the address, in this case 192.168.250.1:8855
+** You can deactivate the adb shell proxy with
+
+```bash
+$ adb shell settings put global http_proxy :0
+```
+**You can also change Anbox default address with
+
+```bash
+$ sudo snap set anbox bridge.address=192.168.250.69
+```
+
+## More to it
+
+**There is no need to restart adb for a root shell, you can just “su” from a regular adb shell
+
+```bash
+$ adb shell
+x86_64:/ $ su
+x86_64:/ # whoami
+root
+```
+```md
+However, you cannot write to protected directories, like "/system", which you need if you want to add your custom certificates for HTTPS traffic. For this you must use Anbox "rootfs-overlay".
+```
+**This is done by enabling the rootfs-overlay and restarting anbox
+
+```bash
+$ sudo snap set anbox rootfs-overlay.enable=true
+$ sudo snap restart anbox
+```
+```
+You can then write via the rootfs-overlay, which is by default located in /var/snap/anbox/common/rootfs-overlay. To add your own certificate, you would then place the structure “/system/etc/security/cacerts” in the rootfs-overlay and add your cert in the /cacerts folder.
+```
+**Lastly you must change the file permission of the certificate (example cert.0) in the folder via:
+
+```bash
+$ sudo chown 100000:100000 /var/snap/anbox/common/rootfs/cert.0
+```
+
+
